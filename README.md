@@ -8,7 +8,7 @@ This project studies catastrophic forgetting in neural networks by training on d
 
 ```bash
 # Create a new conda environment
-conda create -n mnist python=3.9
+conda create -n mnist python=3.11
 
 # Activate the environment
 conda activate mnist
