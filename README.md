@@ -40,7 +40,7 @@ python -c "import torch; print('PyTorch version:', torch.__version__); print('CU
 
 ```bash
 # Run the main experiment
-python run_experiment.py
+python example_test.py
 ```
 
 ### What the Experiment Does
