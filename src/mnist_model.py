@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from typing import List, Dict, Tuple, Optional
 
-class MNISTModel(nn.Module):
+class MNISTModelNN(nn.Module):
     """
     Flexible feedforward neural network for MNIST digit classification.
     Automatically adapts to any architecture you specify.
@@ -17,7 +17,7 @@ class MNISTModel(nn.Module):
             hidden_layers: List of hidden layer sizes (e.g., [2000, 1500, 1000, 500])
             dropout_rate: Dropout probability for regularization
         """
-        super(MNISTModel, self).__init__()
+        super(MNISTModelNN, self).__init__()
         
         # Store architecture info
         self.hidden_layers = hidden_layers
@@ -36,7 +36,7 @@ class MNISTModel(nn.Module):
         self._init_weights()
         
         # Print architecture automatically
-        self.print_architecture()
+        #self.print_architecture()
     
     def _init_weights(self):
         """Initialize weights using Xavier/Glorot initialization."""
@@ -135,7 +135,7 @@ class MNISTModel(nn.Module):
 
 if __name__ == "__main__":
     # Example usage
-    model = MNISTModel([1024, 512], dropout_rate=0.5)
+    model = MNISTModelNN([1024, 512], dropout_rate=0.5)
     model.print_architecture()
     
     # Test forward pass

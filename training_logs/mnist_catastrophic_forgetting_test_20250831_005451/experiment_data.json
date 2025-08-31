@@ -1,0 +1,113 @@
+{
+  "experiment_metadata": {
+    "experiment_name": "mnist_catastrophic_forgetting_test",
+    "logged_at": "2025-08-31T00:56:41.703498",
+    "experiment_directory": "training_logs/mnist_catastrophic_forgetting_test_20250831_005451",
+    "training_duration_seconds": 110.17,
+    "training_duration_formatted": "1.8 minutes"
+  },
+  "model_architecture": {
+    "architecture": "784-1024-512-256-10",
+    "layers": [
+      {
+        "name": "Input",
+        "size": 784,
+        "activation": null
+      },
+      {
+        "name": "Hidden1",
+        "size": 1024,
+        "activation": "ReLU"
+      },
+      {
+        "name": "Hidden2",
+        "size": 512,
+        "activation": "ReLU"
+      },
+      {
+        "name": "Hidden3",
+        "size": 256,
+        "activation": "ReLU"
+      },
+      {
+        "name": "Output",
+        "size": 10,
+        "activation": null
+      }
+    ],
+    "total_parameters": 1462538,
+    "trainable_parameters": 1462538,
+    "model_size_mb": 5.579139709472656,
+    "dropout_rate": 0.3,
+    "num_hidden_layers": 3
+  },
+  "training_configuration": {
+    "training_digits": [
+      0,
+      1,
+      2
+    ],
+    "monitor_digits": [
+      7,
+      8,
+      9
+    ],
+    "epochs": 2,
+    "learning_rate": 0.001,
+    "batch_size": 64,
+    "early_stopping_patience": 5,
+    "architecture_type": "feedforward"
+  },
+  "training_summary": {
+    "training_digits": [
+      0,
+      1,
+      2
+    ],
+    "monitor_digits": [
+      7,
+      8,
+      9
+    ],
+    "epochs_trained": 2,
+    "best_val_accuracy": 98.69088966069998
+  },
+  "final_performance": {
+    "final_train_accuracy": 99.03897849462365,
+    "final_train_loss": 0.032958066470915044,
+    "final_val_accuracy": 98.69088966069998,
+    "final_val_loss": 0.048898578655977055
+  },
+  "catastrophic_forgetting_analysis": {
+    "initial_monitor_accuracy": 0.0,
+    "final_monitor_accuracy": 0.0,
+    "accuracy_change": 0.0,
+    "final_monitor_train_accuracy": 0.0,
+    "final_monitor_val_accuracy": 0.0,
+    "final_monitor_test_loss": 11.34116905927658
+  },
+  "additional_info": {
+    "experiment_type": "catastrophic_forgetting_analysis",
+    "hypothesis": "Training on digits 0,1,2 should maintain performance on digits 7,8,9",
+    "notes": "Baseline experiment for catastrophic forgetting research",
+    "dataset_info": {
+      "train_size": 48000,
+      "val_size": 12000,
+      "test_size": 10000,
+      "total_size": 70000,
+      "num_classes": 10,
+      "image_shape": [
+        1,
+        1,
+        28,
+        28
+      ],
+      "batch_size": 64,
+      "normalized": true
+    }
+  },
+  "log_files_created": [
+    "epoch_metrics.csv",
+    "experiment_data.json"
+  ]
+}

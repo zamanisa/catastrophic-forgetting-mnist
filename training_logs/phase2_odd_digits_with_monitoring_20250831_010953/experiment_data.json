@@ -1,0 +1,101 @@
+{
+  "experiment_metadata": {
+    "experiment_name": "phase2_odd_digits_with_monitoring",
+    "logged_at": "2025-08-31T01:16:26.955568",
+    "experiment_directory": "training_logs/phase2_odd_digits_with_monitoring_20250831_010953",
+    "training_duration_seconds": 393.9,
+    "training_duration_formatted": "6.6 minutes"
+  },
+  "model_architecture": {
+    "architecture": "784-1024-512-10",
+    "layers": [
+      {
+        "name": "Input",
+        "size": 784,
+        "activation": null
+      },
+      {
+        "name": "Hidden1",
+        "size": 1024,
+        "activation": "ReLU"
+      },
+      {
+        "name": "Hidden2",
+        "size": 512,
+        "activation": "ReLU"
+      },
+      {
+        "name": "Output",
+        "size": 10,
+        "activation": null
+      }
+    ],
+    "total_parameters": 1333770,
+    "trainable_parameters": 1333770,
+    "model_size_mb": 5.087928771972656,
+    "dropout_rate": 0.5,
+    "num_hidden_layers": 2
+  },
+  "training_configuration": {
+    "phase": 2,
+    "training_digits": [
+      1,
+      3,
+      5,
+      7,
+      9
+    ],
+    "monitor_digits": [
+      0,
+      2,
+      4,
+      6,
+      8
+    ],
+    "epochs": 5,
+    "learning_rate": 0.001,
+    "batch_size": 64,
+    "experiment_type": "catastrophic_forgetting_analysis"
+  },
+  "training_summary": {
+    "training_digits": [
+      1,
+      3,
+      5,
+      7,
+      9
+    ],
+    "monitor_digits": [
+      0,
+      2,
+      4,
+      6,
+      8
+    ],
+    "epochs_trained": 5,
+    "best_val_accuracy": 98.06937172774869
+  },
+  "final_performance": {
+    "final_train_accuracy": 97.56517461878997,
+    "final_train_loss": 0.07779433561582849,
+    "final_val_accuracy": 98.06937172774869,
+    "final_val_loss": 0.06692392744783622
+  },
+  "catastrophic_forgetting_analysis": {
+    "initial_monitor_accuracy": 1.2789281364190013,
+    "final_monitor_accuracy": 0.0,
+    "accuracy_change": -1.2789281364190013,
+    "final_monitor_train_accuracy": 0.0,
+    "final_monitor_val_accuracy": 0.0,
+    "final_monitor_test_loss": 13.061713751260337
+  },
+  "additional_info": {
+    "phase_description": "Training on odd digits (1,3,5,7,9) while monitoring even digit performance",
+    "previous_phase": "Trained on even digits first",
+    "catastrophic_forgetting_hypothesis": "Performance on even digits should decrease during odd digit training"
+  },
+  "log_files_created": [
+    "epoch_metrics.csv",
+    "experiment_data.json"
+  ]
+}

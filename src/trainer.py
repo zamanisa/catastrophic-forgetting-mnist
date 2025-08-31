@@ -8,17 +8,8 @@ from typing import List, Dict, Tuple, Optional
 from tqdm import tqdm
 import copy
 
-try:
-    from mnist_model import MNISTModel
-    print("MNISTModel import successful")
-except Exception as e:
-    print(f"MNISTModel import failed: {e}")
-
-try:
-    from digit_filter import DigitFilter  
-    print("DigitFilter import successful")
-except Exception as e:
-    print(f"DigitFilter import failed: {e}")
+from mnist_model import MNISTModelNN
+from digit_filter import DigitFilter  
     
  #%%   
 class FlexibleTrainer:
@@ -27,13 +18,13 @@ class FlexibleTrainer:
     performance on multiple digit groups simultaneously.
     """
     
-    def __init__(self, model: MNISTModel, data_loader, device: str = None):
+    def __init__(self, model: MNISTModelNN, data_loader, device: str = None):
         self.model = model
         self.data_loader = data_loader
         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         self.model.to(self.device)
         
-        print(f"Trainer initialized on device: {self.device}")
+        #print(f"Trainer initialized on device: {self.device}")
     
     def create_digit_loaders(self, digits: List[int], batch_size: int = 64) -> Tuple[DataLoader, DataLoader, DataLoader]:
         """

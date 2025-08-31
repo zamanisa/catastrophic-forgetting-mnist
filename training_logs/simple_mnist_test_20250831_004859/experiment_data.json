@@ -1,0 +1,72 @@
+{
+  "experiment_metadata": {
+    "experiment_name": "simple_mnist_test",
+    "logged_at": "2025-08-31T00:50:08.378397",
+    "experiment_directory": "training_logs/simple_mnist_test_20250831_004859",
+    "training_duration_seconds": 68.73,
+    "training_duration_formatted": "1.1 minutes"
+  },
+  "model_architecture": {
+    "architecture": "784-512-256-10",
+    "layers": [
+      {
+        "name": "Input",
+        "size": 784,
+        "activation": null
+      },
+      {
+        "name": "Hidden1",
+        "size": 512,
+        "activation": "ReLU"
+      },
+      {
+        "name": "Hidden2",
+        "size": 256,
+        "activation": "ReLU"
+      },
+      {
+        "name": "Output",
+        "size": 10,
+        "activation": null
+      }
+    ],
+    "total_parameters": 535818,
+    "trainable_parameters": 535818,
+    "model_size_mb": 2.0439834594726562,
+    "dropout_rate": 0.3,
+    "num_hidden_layers": 2
+  },
+  "training_configuration": {
+    "training_digits": [
+      0,
+      1
+    ],
+    "epochs": 10,
+    "learning_rate": 0.001,
+    "batch_size": 32
+  },
+  "training_summary": {
+    "training_digits": [
+      0,
+      1,
+      2,
+      3,
+      5
+    ],
+    "monitor_digits": null,
+    "epochs_trained": 3,
+    "best_val_accuracy": 98.51018043370303
+  },
+  "final_performance": {
+    "final_train_accuracy": 98.11469296428275,
+    "final_train_loss": 0.055035338292351715,
+    "final_val_accuracy": 98.51018043370303,
+    "final_val_loss": 0.04515385047875737
+  },
+  "catastrophic_forgetting_analysis": null,
+  "additional_info": {},
+  "log_files_created": [
+    "epoch_metrics.csv",
+    "experiment_data.json"
+  ]
+}
