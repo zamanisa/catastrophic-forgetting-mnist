@@ -1,173 +1,284 @@
 """
-Example: How to integrate TrainingLogger with your existing FlexibleTrainer
+Example: How to integrate TrainingLogger with FlexibleTrainer (both epoch and batch-based training)
 
-This script demonstrates the clean integration pattern where:
-- FlexibleTrainer handles training
-- TrainingLogger handles logging
-- Both remain independent and reusable
+This script demonstrates:
+- Epoch-based training with logging
+- Batch-based training with logging
+- How the logger automatically handles both formats
 """
-import sys
 import os
+import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import torch
 from mnist_data_prep import MNISTDataLoader
 from mnist_model import MNISTModelNN
-from trainer import FlexibleTrainer
-from evaluation_and_logger import TrainingLogger
+from trainer_with_batch_support import FlexibleTrainer  # Updated trainer
+from training_logger import TrainingLogger
 
 
-def run_experiment_with_logging():
+def run_epoch_based_experiment():
     """
-    Example of running a complete experiment with comprehensive logging.
+    Example of epoch-based training with logging (original functionality).
     """
-    print("Starting MNIST experiment with comprehensive logging...")
+    print("EPOCH-BASED TRAINING EXPERIMENT")
     print("="*60)
     
-    # 1. Setup data
-    print("Setting up data...")
+    # Setup
     data_loader = MNISTDataLoader(batch_size=64, validation_split=0.2)
-    print("✓ Data loaded")
-    
-    # 2. Create model
-    print("\nCreating model...")
-    model = MNISTModelNN(hidden_layers=[1024, 512, 256], dropout_rate=0.3)
-    print("✓ Model created")
-    
-    # 3. Create trainer
-    print("\nInitializing trainer...")
+    model = MNISTModelNN(hidden_layers=[512, 256], dropout_rate=0.3)
     trainer = FlexibleTrainer(model, data_loader)
-    print("✓ Trainer ready")
+    logger = TrainingLogger("epoch_based_experiment")
     
-    # 4. Create logger
-    print("\nInitializing logger...")
-    logger = TrainingLogger(
-        experiment_name="mnist_catastrophic_forgetting_test",
-        log_dir="training_logs"
-    )
-    print("✓ Logger ready")
-    
-    # 5. Define experiment parameters
-    training_digits = [0, 1, 2]  # Train on these digits
-    monitor_digits = [7, 8, 9]   # Monitor these for catastrophic forgetting
-    
+    # Training configuration
     training_config = {
-        'training_digits': training_digits,
-        'monitor_digits': monitor_digits,
-        'epochs': 2,
+        'training_type': 'epoch_based',
+        'training_digits': [0, 1],
+        'monitor_digits': [8, 9],
+        'epochs': 10,
         'learning_rate': 0.001,
         'batch_size': 64,
-        'early_stopping_patience': 5,
-        'architecture_type': 'feedforward'
+        'early_stopping_patience': 3
     }
     
-    print(f"\nExperiment Configuration:")
-    print(f"  Training digits: {training_digits}")
-    print(f"  Monitor digits: {monitor_digits}")
-    print(f"  Max epochs: {training_config['epochs']}")
-    print(f"  Learning rate: {training_config['learning_rate']}")
+    print(f"Training on digits: {training_config['training_digits']}")
+    print(f"Monitoring digits: {training_config['monitor_digits']}")
     
-    # 6. Run training
-    print(f"\nStarting training...")
-    print("-" * 60)
-    
+    # Train using original epoch-based method
     history = trainer.train_on_digits(
-        training_digits=training_digits,
+        training_digits=training_config['training_digits'],
         epochs=training_config['epochs'],
         learning_rate=training_config['learning_rate'],
-        batch_size=training_config['batch_size'],
-        monitor_digits=monitor_digits,
+        monitor_digits=training_config['monitor_digits'],
         early_stopping_patience=training_config['early_stopping_patience'],
         verbose=True
     )
     
-    print("-" * 60)
-    print("✓ Training completed")
-    
-    # 7. Log everything
-    print(f"\nLogging experiment results...")
-    
-    # Get model info
-    model_info = model.get_model_summary()
-    
-    # Additional experiment info
-    additional_info = {
-        'experiment_type': 'catastrophic_forgetting_analysis',
-        'hypothesis': 'Training on digits 0,1,2 should maintain performance on digits 7,8,9',
-        'notes': 'Baseline experiment for catastrophic forgetting research',
-        'dataset_info': data_loader.get_dataset_info()
-    }
-    
-    # Log the complete experiment
+    # Log results
     logger.log_training_run(
         training_history=history,
-        model_info=model_info,
+        model_info=model.get_model_summary(),
         training_config=training_config,
-        additional_info=additional_info
+        additional_info={'experiment_notes': 'Epoch-based training baseline'}
     )
     
-    # 8. Log additional custom metrics (optional)
-    print("\nComputing additional metrics...")
+    print(f"✓ Epoch-based experiment logged to: {logger.get_experiment_path()}")
+    return history
+
+
+def run_batch_based_experiment():
+    """
+    Example of batch-based training with granular logging.
+    """
+    print("BATCH-BASED TRAINING EXPERIMENT")
+    print("="*60)
     
-    # Get performance on all digit groups for comprehensive analysis
-    digit_groups = {
-        'trained_digits': training_digits,
-        'monitored_digits': monitor_digits,
-        'all_even': [0, 2, 4, 6, 8],
-        'all_odd': [1, 3, 5, 7, 9],
-        'low_digits': [0, 1, 2, 3, 4],
-        'high_digits': [5, 6, 7, 8, 9]
+    # Setup
+    data_loader = MNISTDataLoader(batch_size=32, validation_split=0.2)
+    model = MNISTModelNN(hidden_layers=[1024, 512], dropout_rate=0.25)
+    trainer = FlexibleTrainer(model, data_loader)
+    logger = TrainingLogger("batch_based_experiment")
+    
+    # Training configuration
+    training_config = {
+        'training_type': 'batch_based',
+        'training_digits': [2, 3, 4],
+        'monitor_digits': [7, 8, 9],
+        'total_batches': 500,
+        'log_every_n_batches': 50,
+        'val_every_n_batches': 100,
+        'learning_rate': 0.0015,
+        'batch_size': 32,
+        'early_stopping': True,
+        'early_stopping_patience': 3
     }
     
-    performance_breakdown = trainer.get_performance_summary(digit_groups)
+    print(f"Training on digits: {training_config['training_digits']}")
+    print(f"Monitoring digits: {training_config['monitor_digits']}")
+    print(f"Total batches: {training_config['total_batches']:,}")
+    print(f"Logging every: {training_config['log_every_n_batches']} batches")
+    print(f"Validation every: {training_config['val_every_n_batches']} batches")
     
-    logger.log_custom_metrics(
-        metrics_dict=performance_breakdown,
-        filename="detailed_performance_breakdown"
+    # Train using new batch-based method
+    history = trainer.train_on_digits_batch_based(
+        training_digits=training_config['training_digits'],
+        total_batches=training_config['total_batches'],
+        log_every_n_batches=training_config['log_every_n_batches'],
+        val_every_n_batches=training_config['val_every_n_batches'],
+        learning_rate=training_config['learning_rate'],
+        batch_size=training_config['batch_size'],
+        monitor_digits=training_config['monitor_digits'],
+        early_stopping=training_config['early_stopping'],
+        early_stopping_patience=training_config['early_stopping_patience'],
+        verbose=True
     )
     
-    print("✓ Additional metrics logged")
+    # Log results (logger automatically detects batch-based format)
+    logger.log_training_run(
+        training_history=history,
+        model_info=model.get_model_summary(),
+        training_config=training_config,
+        additional_info={
+            'experiment_notes': 'Batch-based training with granular logging',
+            'granularity_analysis': f'Logged every {training_config["log_every_n_batches"]} batches for detailed training dynamics'
+        }
+    )
     
-    # 9. Print summary
-    print(f"\n" + "="*60)
-    print("EXPERIMENT COMPLETED SUCCESSFULLY!")
+    print(f"✓ Batch-based experiment logged to: {logger.get_experiment_path()}")
+    return history
+
+
+def run_comparison_experiment():
+    """
+    Run both training types for direct comparison.
+    """
+    print("COMPARISON EXPERIMENT")
     print("="*60)
-    print(f"Experiment logs saved to: {logger.get_experiment_path()}")
-    print(f"\nKey Results:")
-    print(f"  Best validation accuracy: {history['best_val_accuracy']:.2f}%")
-    print(f"  Epochs trained: {history['epochs_trained']}")
+    print("Running both epoch-based and batch-based training for comparison...")
     
-    if history.get('monitor_test_accuracy'):
-        initial_monitor = history['monitor_test_accuracy'][0]
-        final_monitor = history['monitor_test_accuracy'][-1]
-        change = final_monitor - initial_monitor
-        print(f"  Monitor digits performance change: {change:+.2f}% ({initial_monitor:.2f}% → {final_monitor:.2f}%)")
+    # Run epoch-based
+    print("\n1. Running epoch-based training...")
+    epoch_history = run_epoch_based_experiment()
     
-    print(f"\nFiles created:")
-    for file in logger.get_experiment_path().glob("*.csv"):
-        print(f"  📊 {file.name}")
-    for file in logger.get_experiment_path().glob("*.json"):
-        print(f"  📄 {file.name}")
+    # Run batch-based  
+    print("\n2. Running batch-based training...")
+    batch_history = run_batch_based_experiment()
     
-    return logger.get_experiment_path()
+    # Create comparison summary
+    logger = TrainingLogger("training_comparison_summary")
+    
+    comparison_data = {
+        'epoch_based_results': {
+            'final_train_loss': epoch_history['train_loss'][-1] if epoch_history.get('train_loss') else None,
+            'final_val_loss': epoch_history['val_loss'][-1] if epoch_history.get('val_loss') else None,
+            'epochs_trained': epoch_history.get('epochs_trained', 0),
+            'data_points': len(epoch_history.get('train_loss', []))
+        },
+        'batch_based_results': {
+            'final_train_loss': batch_history['train_loss'][-1] if batch_history.get('train_loss') else None,
+            'final_val_loss': batch_history['val_loss'][-1] if batch_history.get('val_loss') else None,
+            'batches_trained': batch_history.get('batches_trained', 0),
+            'data_points': len(batch_history.get('train_loss', []))
+        },
+        'comparison_notes': {
+            'epoch_granularity': 'Epoch-based training logs once per epoch',
+            'batch_granularity': f'Batch-based training logs every {batch_history.get("log_every_n_batches", "N")} batches',
+            'data_density': f'Batch-based provides {len(batch_history.get("train_loss", []))} vs {len(epoch_history.get("train_loss", []))} data points'
+        }
+    }
+    
+    # Log comparison
+    logger.log_custom_metrics(comparison_data, "training_methods_comparison")
+    
+    print(f"\n✓ Comparison summary logged to: {logger.get_experiment_path()}")
+    
+    return epoch_history, batch_history
 
 
-def run_simple_experiment():
+def run_high_granularity_experiment():
     """
-    Minimal example - just the essentials.
+    Example of very high granularity batch-based training.
     """
-    print("Running simple experiment with basic logging...")
+    print("HIGH GRANULARITY EXPERIMENT")
+    print("="*60)
+    
+    data_loader = MNISTDataLoader(batch_size=64)
+    model = MNISTModelNN([256, 128])
+    trainer = FlexibleTrainer(model, data_loader)
+    logger = TrainingLogger("high_granularity_experiment")
+    
+    # Very granular logging settings
+    training_config = {
+        'training_type': 'high_granularity_batch_based',
+        'training_digits': [0, 1, 2, 3, 4],
+        'monitor_digits': [5, 6, 7, 8, 9],
+        'total_batches': 1000,
+        'log_every_n_batches': 25,   # Very frequent logging
+        'val_every_n_batches': 50,   # Frequent validation
+        'learning_rate': 0.001,
+        'batch_size': 64,
+        'early_stopping': True,
+        'early_stopping_patience': 5
+    }
+    
+    print(f"Ultra-granular training:")
+    print(f"  - Logging every {training_config['log_every_n_batches']} batches")
+    print(f"  - Validation every {training_config['val_every_n_batches']} batches")
+    print(f"  - Expected ~{training_config['total_batches'] // training_config['log_every_n_batches']} log points")
+    
+    # Train with high granularity
+    history = trainer.train_on_digits_batch_based(
+        training_digits=training_config['training_digits'],
+        total_batches=training_config['total_batches'],
+        log_every_n_batches=training_config['log_every_n_batches'],
+        val_every_n_batches=training_config['val_every_n_batches'],
+        learning_rate=training_config['learning_rate'],
+        batch_size=training_config['batch_size'],
+        monitor_digits=training_config['monitor_digits'],
+        early_stopping=training_config['early_stopping'],
+        early_stopping_patience=training_config['early_stopping_patience'],
+        verbose=True
+    )
+    
+    # Log with detailed analysis
+    logger.log_training_run(
+        training_history=history,
+        model_info=model.get_model_summary(),
+        training_config=training_config,
+        additional_info={
+            'experiment_type': 'high_granularity_analysis',
+            'purpose': 'Detailed training dynamics analysis',
+            'data_points_captured': len(history.get('train_loss', [])),
+            'granularity_benefit': 'Can observe micro-patterns in loss progression',
+            'use_case': 'Research into training instabilities, loss spikes, convergence patterns'
+        }
+    )
+    
+    print(f"✓ High granularity experiment logged to: {logger.get_experiment_path()}")
+    print(f"  Captured {len(history.get('train_loss', []))} training data points")
+    
+    return history
+
+
+def run_simple_batch_experiment():
+    """
+    Minimal example of batch-based training - just the essentials.
+    """
+    print("SIMPLE BATCH-BASED EXPERIMENT")
+    print("="*60)
     
     # Quick setup
-    data_loader = MNISTDataLoader(batch_size=32)
-    model = MNISTModelNN([512, 256])
+    data_loader = MNISTDataLoader(batch_size=64)
+    model = MNISTModelNN([512])
     trainer = FlexibleTrainer(model, data_loader)
-    logger = TrainingLogger("simple_mnist_test")
+    logger = TrainingLogger("simple_batch_experiment")
+    
+    # Simple configuration
+    training_config = {
+        'training_type': 'simple_batch_based',
+        'training_digits': [0, 1, 2],
+        'total_batches': 300,
+        'log_every_n_batches': 100,
+        'val_every_n_batches': 100,
+        'learning_rate': 0.001,
+        'batch_size': 64,
+        'early_stopping': False  # Disabled for simplicity
+    }
+    
+    print("Simple batch-based training:")
+    print(f"  - Training digits: {training_config['training_digits']}")
+    print(f"  - Total batches: {training_config['total_batches']}")
+    print(f"  - No early stopping")
     
     # Train
-    history = trainer.train_on_digits(
-        training_digits=[0, 1, 2, 3, 5],
-        epochs=3,
+    history = trainer.train_on_digits_batch_based(
+        training_digits=training_config['training_digits'],
+        total_batches=training_config['total_batches'],
+        log_every_n_batches=training_config['log_every_n_batches'],
+        val_every_n_batches=training_config['val_every_n_batches'],
+        learning_rate=training_config['learning_rate'],
+        batch_size=training_config['batch_size'],
+        early_stopping=training_config['early_stopping'],
         verbose=True
     )
     
@@ -175,30 +286,73 @@ def run_simple_experiment():
     logger.log_training_run(
         training_history=history,
         model_info=model.get_model_summary(),
-        training_config={
-            'training_digits': [0, 1],
-            'epochs': 10,
-            'learning_rate': 0.001,
-            'batch_size': 32
-        }
+        training_config=training_config,
+        additional_info={'experiment_notes': 'Simple batch-based training example'}
     )
     
-    print(f"Simple experiment logged to: {logger.get_experiment_path()}")
+    print(f"✓ Simple batch experiment logged to: {logger.get_experiment_path()}")
+    return history
 
 
 if __name__ == "__main__":
-    # You can run either example
+    print("FlexibleTrainer + TrainingLogger Integration Examples")
+    print("="*70)
     
-    print("Choose experiment type:")
-    print("1. Comprehensive experiment (with catastrophic forgetting analysis)")
-    print("2. Simple experiment (basic training)")
+    print("Available experiments:")
+    print("1. Epoch-based training (original)")
+    print("2. Batch-based training")
+    print("3. Simple batch-based training")
+    print("4. High granularity batch-based training")
+    print("5. Compare epoch vs batch training")
+    print("6. Run all experiments")
     
-    choice = input("Enter choice (1 or 2): ").strip()
+    choice = input("\nEnter choice (1-6): ").strip()
     
     if choice == "1":
-        experiment_path = run_experiment_with_logging()
+        run_epoch_based_experiment()
+    
     elif choice == "2":
-        run_simple_experiment()
+        run_batch_based_experiment()
+    
+    elif choice == "3":
+        run_simple_batch_experiment()
+    
+    elif choice == "4":
+        run_high_granularity_experiment()
+    
+    elif choice == "5":
+        run_comparison_experiment()
+    
+    elif choice == "6":
+        print("Running all experiments...")
+        print("\n" + "="*70)
+        
+        # Run all experiments
+        run_epoch_based_experiment()
+        print("\n" + "-"*50)
+        run_simple_batch_experiment()
+        print("\n" + "-"*50)
+        run_batch_based_experiment() 
+        print("\n" + "-"*50)
+        run_high_granularity_experiment()
+        print("\n" + "-"*50)
+        run_comparison_experiment()
+        
+        print("\n" + "="*70)
+        print("ALL EXPERIMENTS COMPLETED!")
+        print("Check the 'training_logs' directory for all results.")
+    
     else:
-        print("Running comprehensive experiment by default...")
-        experiment_path = run_experiment_with_logging()
+        print("Invalid choice. Running simple batch-based experiment by default...")
+        run_simple_batch_experiment()
+    
+    print(f"\n{'='*70}")
+    print("Integration examples completed!")
+    print("Key features demonstrated:")
+    print("✓ Epoch-based training with logging")
+    print("✓ Batch-based training with configurable granularity")  
+    print("✓ Automatic detection of training type by logger")
+    print("✓ Catastrophic forgetting monitoring")
+    print("✓ Early stopping with batch-based training")
+    print("✓ Flexible validation frequency")
+    print("✓ Clean separation: Trainer trains, Logger logs")

@@ -95,8 +95,8 @@ class TrainingLogger:
         # Calculate training duration
         training_duration = time.time() - self.experiment_start_time
         
-        # 1. Log epoch-by-epoch metrics to CSV
-        self._log_epoch_metrics_csv(training_history, training_config)
+        # 1. Log training metrics to CSV (handles both epoch and batch-based)
+        self._log_training_metrics_csv(training_history, training_config)
         
         # 2. Log everything else to single JSON file
         self._log_complete_experiment_json(
@@ -106,58 +106,66 @@ class TrainingLogger:
         
         print("✓ Training run logged successfully!")
         print(f"  Files created in: {self.experiment_dir}")
-        print(f"  - epoch_metrics.csv (per-epoch training data)")
+        
+        # Detect training type for user info
+        if 'batch_numbers' in training_history:
+            print(f"  - batch_metrics.csv (per-batch training data)")
+        else:
+            print(f"  - epoch_metrics.csv (per-epoch training data)")
         print(f"  - experiment_data.json (all metadata and summaries)")
     
-    def _log_epoch_metrics_csv(self, history: Dict, training_config: Dict):
-        """Log epoch-by-epoch training metrics to CSV with test loss calculation."""
-        csv_file = self.experiment_dir / "epoch_metrics.csv"
+    def _log_training_metrics_csv(self, history: Dict, training_config: Dict):
+        """Log training metrics to CSV - handles both epoch-based and batch-based data."""
         
-        # Determine all available metrics
-        epochs = len(history.get('train_loss', []))
-        if epochs == 0:
-            print("⚠ No epoch data to log")
+        # Detect if this is batch-based or epoch-based training
+        is_batch_based = 'batch_numbers' in history
+        
+        if is_batch_based:
+            csv_file = self.experiment_dir / "batch_metrics.csv"
+            time_column = 'batch'
+            time_data = history.get('batch_numbers', [])
+        else:
+            csv_file = self.experiment_dir / "epoch_metrics.csv"
+            time_column = 'epoch'
+            time_data = list(range(1, len(history.get('train_loss', [])) + 1))
+        
+        # Check if we have data to log
+        data_length = len(history.get('train_loss', []))
+        if data_length == 0:
+            print("⚠ No training data to log")
             return
         
         # Fixed headers as requested
-        headers = ['epoch', 'train_loss', 'val_loss', 'test_loss', 
-                  'monitor_train_loss', 'monitor_val_loss', 'monitor_test_loss']
-        
-        # Get training digits for test loss calculation
-        training_digits = history.get('training_digits', [])
-        
+        headers = [time_column, 'train_loss', 'train_accuracy', 'val_loss', 'val_accuracy', 
+                    'test_loss', 'test_accuracy', 'monitor_train_loss', 'monitor_train_accuracy',
+                    'monitor_val_loss', 'monitor_val_accuracy', 'monitor_test_loss', 'monitor_test_accuracy']
+
         # Write CSV
         with open(csv_file, 'w', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(headers)
             
-            for epoch in range(epochs):
-                row = [epoch + 1]  # 1-indexed epochs
-                
-                # Add train_loss
-                train_loss = history.get('train_loss', [None])[epoch] if epoch < len(history.get('train_loss', [])) else None
-                row.append(train_loss)
-                
-                # Add val_loss
-                val_loss = history.get('val_loss', [None])[epoch] if epoch < len(history.get('val_loss', [])) else None
-                row.append(val_loss)
-                
-                # Add test_loss (we'll need to calculate this or use a placeholder)
-                # For now, we'll use None and note that this needs to be calculated during training
-                test_loss = None  # This would need to be calculated during training
-                row.append(test_loss)
-                
-                # Add monitor metrics
-                monitor_train_loss = history.get('monitor_train_loss', [None])[epoch] if epoch < len(history.get('monitor_train_loss', [])) else None
-                monitor_val_loss = history.get('monitor_val_loss', [None])[epoch] if epoch < len(history.get('monitor_val_loss', [])) else None
-                monitor_test_loss = history.get('monitor_test_loss', [None])[epoch] if epoch < len(history.get('monitor_test_loss', [])) else None
-                
-                row.extend([monitor_train_loss, monitor_val_loss, monitor_test_loss])
-                
-                writer.writerow(row)
-        
-        print(f"✓ Epoch metrics saved to: epoch_metrics.csv ({epochs} epochs)")
-        print(f"  Note: test_loss column requires modification to FlexibleTrainer to calculate test loss per epoch")
+        for i in range(data_length):
+            # Time identifier (epoch number or batch number)
+            time_id = time_data[i] if i < len(time_data) else i + 1
+            row = [time_id]
+            
+            # Add all metrics in header order
+            metrics = ['train_loss', 'train_accuracy', 'val_loss', 'val_accuracy',
+                    'test_loss', 'test_accuracy', 'monitor_train_loss', 'monitor_train_accuracy',
+                    'monitor_val_loss', 'monitor_val_accuracy', 'monitor_test_loss', 'monitor_test_accuracy']
+            
+            for metric in metrics:
+                value = None
+                if metric in history and i < len(history[metric]):
+                    value = history[metric][i]
+                row.append(value)
+            
+            writer.writerow(row)       
+             
+        filename = csv_file.name
+        training_type = "batch-based" if is_batch_based else "epoch-based"
+        print(f"✓ {training_type.title()} metrics saved to: {filename} ({data_length} data points)")
     
     def _log_complete_experiment_json(
         self, 
@@ -196,8 +204,9 @@ class TrainingLogger:
                 'final_train_loss': history.get('train_loss', [0])[-1] if history.get('train_loss') else 0,
                 'final_val_accuracy': history.get('val_accuracy', [0])[-1] if history.get('val_accuracy') else 0,
                 'final_val_loss': history.get('val_loss', [0])[-1] if history.get('val_loss') else 0,
-            },
-            
+                'final_test_accuracy': history.get('test_accuracy', [0])[-1] if history.get('test_accuracy') else 0,
+                'final_test_loss': history.get('test_loss', [0])[-1] if history.get('test_loss') else 0,
+            },            
             'catastrophic_forgetting_analysis': None,
             
             'additional_info': additional_info or {},
@@ -276,40 +285,6 @@ def create_training_logger(experiment_name: str, log_dir: str = "training_logs")
     """
     return TrainingLogger(experiment_name=experiment_name, log_dir=log_dir)
 
-
-# Utility functions for common use cases
-
-def print_performance_summary(summary: Dict[str, Dict[str, float]]):
-    """Pretty print performance summary."""
-    print("\n" + "="*60)
-    print("PERFORMANCE SUMMARY")
-    print("="*60)
-    
-    for group_name, metrics in summary.items():
-        print(f"\n{group_name.upper()} DIGITS:")
-        print(f"  Train:      {metrics['train_accuracy']:6.2f}% (loss: {metrics['train_loss']:.4f})")
-        print(f"  Validation: {metrics['val_accuracy']:6.2f}% (loss: {metrics['val_loss']:.4f})")
-        print(f"  Test:       {metrics['test_accuracy']:6.2f}% (loss: {metrics['test_loss']:.4f})")
-
-def calculate_forgetting(history_before: Dict, history_after: Dict, monitor_key: str = 'monitor_test_accuracy') -> float:
-    """
-    Calculate catastrophic forgetting between two training phases.
-    
-    Args:
-        history_before: Training history from phase 1
-        history_after: Training history from phase 2 (with monitoring)
-        monitor_key: Key to use for forgetting calculation
-        
-    Returns:
-        Forgetting amount (positive value indicates forgetting)
-    """
-    if monitor_key not in history_after:
-        raise ValueError(f"Monitor key '{monitor_key}' not found in history_after")
-    
-    accuracy_before = history_before['best_val_accuracy']
-    accuracy_after = history_after[monitor_key][-1]  # Final monitored accuracy
-    
-    return accuracy_before - accuracy_after
 
 # Example usage demonstration
 if __name__ == "__main__":
