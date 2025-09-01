@@ -145,23 +145,23 @@ class TrainingLogger:
             writer = csv.writer(f)
             writer.writerow(headers)
             
-        for i in range(data_length):
-            # Time identifier (epoch number or batch number)
-            time_id = time_data[i] if i < len(time_data) else i + 1
-            row = [time_id]
-            
-            # Add all metrics in header order
-            metrics = ['train_loss', 'train_accuracy', 'val_loss', 'val_accuracy',
-                    'test_loss', 'test_accuracy', 'monitor_train_loss', 'monitor_train_accuracy',
-                    'monitor_val_loss', 'monitor_val_accuracy', 'monitor_test_loss', 'monitor_test_accuracy']
-            
-            for metric in metrics:
-                value = None
-                if metric in history and i < len(history[metric]):
-                    value = history[metric][i]
-                row.append(value)
-            
-            writer.writerow(row)       
+            for i in range(data_length):
+                # Time identifier (epoch number or batch number)
+                time_id = time_data[i] if i < len(time_data) else i + 1
+                row = [time_id]
+                
+                # Add all metrics in header order
+                metrics = ['train_loss', 'train_accuracy', 'val_loss', 'val_accuracy',
+                        'test_loss', 'test_accuracy', 'monitor_train_loss', 'monitor_train_accuracy',
+                        'monitor_val_loss', 'monitor_val_accuracy', 'monitor_test_loss', 'monitor_test_accuracy']
+                
+                for metric in metrics:
+                    value = None
+                    if metric in history and i < len(history[metric]):
+                        value = history[metric][i]
+                    row.append(value)
+                
+                writer.writerow(row)       
              
         filename = csv_file.name
         training_type = "batch-based" if is_batch_based else "epoch-based"

@@ -1,7 +1,7 @@
 #%%
 from trainer import FlexibleTrainer
 from mnist_data_prep import MNISTDataLoader
-from mnist_model import MNISTModelNN
+from models.ff_nn import MNISTModelNN
 
 #%%
 # Setup

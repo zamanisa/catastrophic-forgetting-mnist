@@ -6,7 +6,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from trainer import FlexibleTrainer
 from mnist_data_prep import MNISTDataLoader
 from models.ff_nn import MNISTModelNN
-from src.training_logger import TrainingLogger
+from training_logger import TrainingLogger
 print('we are here')
 # %%
 # Setup
@@ -14,7 +14,7 @@ whole_set = [i for i in range(10)]
 first_set = [0, 2, 4, 6, 8]
 second_set = [i for i in whole_set if i not in first_set]
 data_loader = MNISTDataLoader(batch_size=64)
-model = MNISTModelNN([1024, 512], dropout_rate=0.5)
+model = MNISTModelNN([512, 512], dropout_rate=0.5)
 
 # Create loggers for each phase
 phase1_logger = TrainingLogger("phase1_even_digits")
@@ -33,7 +33,7 @@ print("="*60)
 
 phase1_history = trainer.train_on_digits(
     training_digits=first_set,
-    epochs=5,
+    epochs=2,
     learning_rate=0.001
 )
 

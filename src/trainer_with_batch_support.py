@@ -8,7 +8,7 @@ from typing import List, Dict, Tuple, Optional
 from tqdm import tqdm
 import copy
 
-from mnist_model import MNISTModelNN
+from models.ff_nn import MNISTModelNN
 from digit_filter import DigitFilter  
 from trainer import FlexibleTrainer as OriginalFlexibleTrainer
 
