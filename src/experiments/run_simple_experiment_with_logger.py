@@ -5,8 +5,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from trainer import FlexibleTrainer
 from mnist_data_prep import MNISTDataLoader
-from mnist_model import MNISTModelNN
-from evaluation_and_logger import TrainingLogger
+from models.ff_nn import MNISTModelNN
+from src.training_logger import TrainingLogger
 print('we are here')
 # %%
 # Setup

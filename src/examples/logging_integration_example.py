@@ -12,10 +12,11 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import torch
 from mnist_data_prep import MNISTDataLoader
-from mnist_model import MNISTModelNN
+from models.ff_nn import MNISTModelNN
 from trainer_with_batch_support import FlexibleTrainer  # Updated trainer
 from training_logger import TrainingLogger
 
+model_type = MNISTModelNN(hidden_layers=[512, 256], dropout_rate=0.3)
 
 def run_epoch_based_experiment():
     """
@@ -26,7 +27,7 @@ def run_epoch_based_experiment():
     
     # Setup
     data_loader = MNISTDataLoader(batch_size=64, validation_split=0.2)
-    model = MNISTModelNN(hidden_layers=[512, 256], dropout_rate=0.3)
+    model = model_type
     trainer = FlexibleTrainer(model, data_loader)
     logger = TrainingLogger("epoch_based_experiment")
     
@@ -35,7 +36,7 @@ def run_epoch_based_experiment():
         'training_type': 'epoch_based',
         'training_digits': [0, 1],
         'monitor_digits': [8, 9],
-        'epochs': 10,
+        'epochs': 2,
         'learning_rate': 0.001,
         'batch_size': 64,
         'early_stopping_patience': 3
@@ -75,7 +76,7 @@ def run_batch_based_experiment():
     
     # Setup
     data_loader = MNISTDataLoader(batch_size=32, validation_split=0.2)
-    model = MNISTModelNN(hidden_layers=[1024, 512], dropout_rate=0.25)
+    model = model_type
     trainer = FlexibleTrainer(model, data_loader)
     logger = TrainingLogger("batch_based_experiment")
     
@@ -183,7 +184,7 @@ def run_high_granularity_experiment():
     print("="*60)
     
     data_loader = MNISTDataLoader(batch_size=64)
-    model = MNISTModelNN([256, 128])
+    model = model_type
     trainer = FlexibleTrainer(model, data_loader)
     logger = TrainingLogger("high_granularity_experiment")
     
@@ -249,7 +250,7 @@ def run_simple_batch_experiment():
     
     # Quick setup
     data_loader = MNISTDataLoader(batch_size=64)
-    model = MNISTModelNN([512])
+    model = model_type
     trainer = FlexibleTrainer(model, data_loader)
     logger = TrainingLogger("simple_batch_experiment")
     
