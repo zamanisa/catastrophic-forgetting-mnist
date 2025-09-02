@@ -15,6 +15,7 @@ from mnist_data_prep import MNISTDataLoader
 from models.ff_nn import MNISTModelNN
 from trainer_with_batch_support import FlexibleTrainer  # Updated trainer
 from training_logger import TrainingLogger
+from loggings.model_checkpointer import ModelCheckpointer
 
 model_type = MNISTModelNN(hidden_layers=[512, 256], dropout_rate=0.3)
 
@@ -294,6 +295,82 @@ def run_simple_batch_experiment():
     print(f"✓ Simple batch experiment logged to: {logger.get_experiment_path()}")
     return history
 
+def run_simple_batch_experiment_with_checkpointer():
+    """
+    Minimal example of batch-based training with checkpointing.
+    """
+    print("SIMPLE BATCH-BASED EXPERIMENT WITH CHECKPOINTING")
+    print("="*60)
+    experiment_name = "simple_batch_experiment_with_checkpointer"
+    # Quick setup
+    data_loader = MNISTDataLoader(batch_size=64)
+    model = model_type
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    trainer = FlexibleTrainer(model, data_loader)
+    logger = TrainingLogger(experiment_name)
+    # Simple configuration
+    training_config = {
+        'training_type': 'simple_batch_based',
+        'training_digits': [0, 1, 2],
+        'total_batches': 200,
+        'log_every_n_batches': 100,
+        'val_every_n_batches': 100,
+        'learning_rate': 0.001,
+        'batch_size': 64,
+        'early_stopping': False  # Disabled for simplicity
+    }
+    
+    print("Simple batch-based training:")
+    print(f"  - Training digits: {training_config['training_digits']}")
+    print(f"  - Total batches: {training_config['total_batches']}")
+    print(f"  - No early stopping")
+    
+    checkpointer = ModelCheckpointer(
+                                model=model,
+                                optimizer=optimizer,
+                                experiment_name=experiment_name,
+                                save_every_n_batches=100  # Save every 100 batches (3 saves total for 300 batches)
+                                )
+
+    # Train
+    history = trainer.train_on_digits_batch_based(
+        training_digits=training_config['training_digits'],
+        total_batches=training_config['total_batches'],
+        log_every_n_batches=training_config['log_every_n_batches'],
+        val_every_n_batches=training_config['val_every_n_batches'],
+        learning_rate=training_config['learning_rate'],
+        batch_size=training_config['batch_size'],
+        early_stopping=training_config['early_stopping'],
+        verbose=True,
+        checkpointer=checkpointer,
+        optimizer=optimizer
+    )
+
+    # Final checkpoint (best model based on final validation loss)
+    if 'val_loss' in history and history['val_loss']:
+        final_val_loss = [loss for loss in history['val_loss'] if loss is not None][-1]
+        checkpointer.save_best_model(
+            current_metric=final_val_loss,
+            batch=training_config['total_batches'],
+            is_higher_better=False,  # Lower loss is better
+            training_history=history,
+            training_config=training_config,
+            model_info=model.get_model_summary()
+        )
+    # Log
+    logger.log_training_run(
+        training_history=history,
+        model_info=model.get_model_summary(),
+        training_config=training_config,
+        additional_info={'experiment_notes': 'Simple batch-based training example'}
+    )
+    
+    print(f"✓ Simple batch experiment logged to: {logger.get_experiment_path()}")
+    print(f"✓ Checkpoints saved to: {checkpointer.get_experiment_path()}")
+
+    return history, checkpointer
+
+
 
 if __name__ == "__main__":
     print("FlexibleTrainer + TrainingLogger Integration Examples")
@@ -305,10 +382,11 @@ if __name__ == "__main__":
     print("3. Simple batch-based training")
     print("4. High granularity batch-based training")
     print("5. Compare epoch vs batch training")
-    print("6. Run all experiments")
+    print("6. Simple batch-based training with checkpointing")
+    print("7. Run all experiments")
     
-    choice = input("\nEnter choice (1-6): ").strip()
-    
+    choice = input("\nEnter choice (1-7): ").strip()
+
     if choice == "1":
         run_epoch_based_experiment()
     
@@ -323,8 +401,11 @@ if __name__ == "__main__":
     
     elif choice == "5":
         run_comparison_experiment()
-    
+
     elif choice == "6":
+        run_simple_batch_experiment_with_checkpointer()
+        
+    elif choice == "7":
         print("Running all experiments...")
         print("\n" + "="*70)
         

@@ -67,7 +67,7 @@ print("="*60)
 
 phase2_history = trainer.train_on_digits(
     training_digits=second_set,
-    epochs=5,
+    epochs=2,
     monitor_digits=first_set  # This tracks forgetting!
 )
 

@@ -477,7 +477,7 @@ def create_model_checkpointer(
 # Example usage demonstration
 if __name__ == "__main__":
     import torch.optim as optim
-    from mnist_model import MNISTModelNN  # Assuming this exists
+    from models.ff_nn import MNISTModelNN  
     
     print("ModelCheckpointer Example Usage")
     print("="*50)
