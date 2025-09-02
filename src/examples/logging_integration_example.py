@@ -12,12 +12,36 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import torch
 from utils.mnist_data_prep import MNISTDataLoader
+
 from models.ff_nn import MNISTModelNN
+from models.graph_nn import MNISTGraphNN
+from models.transformer import MNISTTransformer
 from loggings.trainer_with_batch_support import FlexibleTrainerWithBatch  # Updated trainer
 from loggings.training_logger import TrainingLogger
 from loggings.model_checkpointer import ModelCheckpointer
 
-model_type = MNISTModelNN(hidden_layers=[512, 256], dropout_rate=0.3)
+model_ff_nn = MNISTModelNN(hidden_layers=[512, 256], dropout_rate=0.3)
+
+
+model_graphnn = MNISTGraphNN(
+    hidden_dims=[32, 64, 32],
+    connectivity_radius=1,    # Only 4-connected
+    use_position_features=False,
+    pooling_method='max',
+    dropout_rate=0.2
+)
+
+model_transformer = MNISTTransformer(
+    patch_size=7,          # 7x7 patches (16 patches)
+    d_model=128,
+    n_heads=4,
+    n_layers=3,
+    dim_feedforward=256,
+        dropout_rate=0.2
+    )
+
+model_type = model_graphnn
+
 
 def run_epoch_based_experiment():
     """
@@ -28,7 +52,7 @@ def run_epoch_based_experiment():
     
     # Setup
     data_loader = MNISTDataLoader(batch_size=64, validation_split=0.2)
-    model = model_type
+    model = model_graphnn
     trainer = FlexibleTrainerWithBatch(model, data_loader)
     logger = TrainingLogger("epoch_based_experiment")
     

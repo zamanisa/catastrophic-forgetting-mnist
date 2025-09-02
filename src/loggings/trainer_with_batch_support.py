@@ -9,7 +9,7 @@ from tqdm import tqdm
 import copy
 
 from models.ff_nn import MNISTModelNN
-from src.utils.digit_filter import DigitFilter  
+from utils.digit_filter import DigitFilter  
 from loggings.trainer import FlexibleTrainer
 
 class FlexibleTrainerWithBatch(FlexibleTrainer):
