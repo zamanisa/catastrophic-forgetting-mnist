@@ -272,9 +272,9 @@ def run_simple_batch_experiment():
     """
     print("SIMPLE BATCH-BASED EXPERIMENT")
     print("="*60)
-    
+    batch_size = 32
     # Quick setup
-    data_loader = MNISTDataLoader(batch_size=64)
+    data_loader = MNISTDataLoader(batch_size=batch_size)
     model = model_type
     trainer = FlexibleTrainerWithBatch(model, data_loader)
     logger = TrainingLogger("simple_batch_experiment")
@@ -284,10 +284,10 @@ def run_simple_batch_experiment():
         'training_type': 'simple_batch_based',
         'training_digits': [0, 1, 2],
         'total_batches': 300,
-        'log_every_n_batches': 100,
-        'val_every_n_batches': 100,
+        'log_every_n_batches': batch_size,
+        'val_every_n_batches': batch_size,
         'learning_rate': 0.001,
-        'batch_size': 64,
+        'batch_size': batch_size,
         'early_stopping': False  # Disabled for simplicity
     }
     
@@ -326,8 +326,9 @@ def run_simple_batch_experiment_with_checkpointer():
     print("SIMPLE BATCH-BASED EXPERIMENT WITH CHECKPOINTING")
     print("="*60)
     experiment_name = "simple_batch_experiment_with_checkpointer"
+    batch_size = 32
     # Quick setup
-    data_loader = MNISTDataLoader(batch_size=64)
+    data_loader = MNISTDataLoader(batch_size=batch_size)
     model = model_type
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     trainer = FlexibleTrainerWithBatch(model, data_loader)
@@ -340,7 +341,7 @@ def run_simple_batch_experiment_with_checkpointer():
         'log_every_n_batches': 100,
         'val_every_n_batches': 100,
         'learning_rate': 0.001,
-        'batch_size': 64,
+        'batch_size': batch_size,
         'early_stopping': False  # Disabled for simplicity
     }
     
@@ -400,9 +401,9 @@ def run_epoch_based_experiment_with_checkpointer():
     """
     print("EPOCH-BASED TRAINING EXPERIMENT WITH CHECKPOINTING")
     print("="*60)
-    
+    batch_size = 32
     # Setup
-    data_loader = MNISTDataLoader(batch_size=64, validation_split=0.2)
+    data_loader = MNISTDataLoader(batch_size=batch_size, validation_split=0.2)
     model = model_type
     trainer = FlexibleTrainerWithBatch(model, data_loader)
     logger = TrainingLogger("epoch_based_experiment_with_checkpointer")
@@ -420,7 +421,7 @@ def run_epoch_based_experiment_with_checkpointer():
         'monitor_digits': [8, 9],
         'epochs': 2,
         'learning_rate': 0.001,
-        'batch_size': 64,
+        'batch_size': batch_size,
         'early_stopping_patience': 3
     }
     
