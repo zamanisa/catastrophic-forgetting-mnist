@@ -49,7 +49,9 @@ class FlexibleTrainer:
         
         return train_loader, val_loader, test_loader
     
-    def evaluate_on_digits(self, digits: List[int], split: str = 'test') -> Dict[str, float]:
+    def evaluate_on_digits(self, digits: List[int], 
+                           split: str = 'test',
+                           criterion: Optional[nn.Module] = None) -> Dict[str, float]:
         """
         Evaluate model performance on specific digits.
         
@@ -78,8 +80,9 @@ class FlexibleTrainer:
         total_loss = 0.0
         correct = 0
         total = 0
-        criterion = nn.CrossEntropyLoss()
-        
+        if criterion is None:
+            criterion = nn.CrossEntropyLoss()
+
         with torch.no_grad():
             for images, labels in loader:
                 images, labels = images.to(self.device), labels.to(self.device)
@@ -205,7 +208,7 @@ class FlexibleTrainer:
             train_metrics = self.train_epoch(train_loader, criterion, optimizer)
             
             # Evaluate on validation set (same digits as training)
-            val_metrics = self.evaluate_on_digits(training_digits, split='val')
+            val_metrics = self.evaluate_on_digits(training_digits, split='val', criterion=criterion)
             
             # Store training metrics
             history['train_loss'].append(train_metrics['loss'])
@@ -215,10 +218,10 @@ class FlexibleTrainer:
             
             # Monitor other digits if specified
             if monitor_digits:
-                monitor_train = self.evaluate_on_digits(monitor_digits, split='train')
-                monitor_val = self.evaluate_on_digits(monitor_digits, split='val')
-                monitor_test = self.evaluate_on_digits(monitor_digits, split='test')
-                
+                monitor_train = self.evaluate_on_digits(monitor_digits, split='train', criterion=criterion)
+                monitor_val = self.evaluate_on_digits(monitor_digits, split='val', criterion=criterion)
+                monitor_test = self.evaluate_on_digits(monitor_digits, split='test', criterion=criterion)
+
                 history['monitor_train_loss'].append(monitor_train['loss'])
                 history['monitor_train_accuracy'].append(monitor_train['accuracy'])
                 history['monitor_val_loss'].append(monitor_val['loss'])
@@ -283,7 +286,9 @@ class FlexibleTrainer:
         
         return history
     
-    def get_performance_summary(self, digits_groups: Dict[str, List[int]]) -> Dict[str, Dict[str, float]]:
+    def get_performance_summary(self, 
+                                digits_groups: Dict[str, List[int]],
+                                criterion: Optional[nn.Module] = None) -> Dict[str, Dict[str, float]]:
         """
         Get performance summary on multiple digit groups.
         
@@ -295,12 +300,13 @@ class FlexibleTrainer:
             Dictionary with performance metrics for each group
         """
         summary = {}
-        
+        if criterion is None:
+            criterion = nn.CrossEntropyLoss()
         for group_name, digits in digits_groups.items():
-            train_perf = self.evaluate_on_digits(digits, split='train')
-            val_perf = self.evaluate_on_digits(digits, split='val')
-            test_perf = self.evaluate_on_digits(digits, split='test')
-            
+            train_perf = self.evaluate_on_digits(digits, split='train', criterion=criterion)
+            val_perf = self.evaluate_on_digits(digits, split='val', criterion=criterion)
+            test_perf = self.evaluate_on_digits(digits, split='test', criterion=criterion)
+
             summary[group_name] = {
                 'train_accuracy': train_perf['accuracy'],
                 'val_accuracy': val_perf['accuracy'],
