@@ -11,10 +11,10 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import torch
-from mnist_data_prep import MNISTDataLoader
+from utils.mnist_data_prep import MNISTDataLoader
 from models.ff_nn import MNISTModelNN
-from trainer_with_batch_support import FlexibleTrainer  # Updated trainer
-from training_logger import TrainingLogger
+from loggings.trainer_with_batch_support import FlexibleTrainerWithBatch  # Updated trainer
+from loggings.training_logger import TrainingLogger
 from loggings.model_checkpointer import ModelCheckpointer
 
 model_type = MNISTModelNN(hidden_layers=[512, 256], dropout_rate=0.3)
@@ -29,7 +29,7 @@ def run_epoch_based_experiment():
     # Setup
     data_loader = MNISTDataLoader(batch_size=64, validation_split=0.2)
     model = model_type
-    trainer = FlexibleTrainer(model, data_loader)
+    trainer = FlexibleTrainerWithBatch(model, data_loader)
     logger = TrainingLogger("epoch_based_experiment")
     
     # Training configuration
@@ -78,7 +78,7 @@ def run_batch_based_experiment():
     # Setup
     data_loader = MNISTDataLoader(batch_size=32, validation_split=0.2)
     model = model_type
-    trainer = FlexibleTrainer(model, data_loader)
+    trainer = FlexibleTrainerWithBatch(model, data_loader)
     logger = TrainingLogger("batch_based_experiment")
     
     # Training configuration
@@ -186,7 +186,7 @@ def run_high_granularity_experiment():
     
     data_loader = MNISTDataLoader(batch_size=64)
     model = model_type
-    trainer = FlexibleTrainer(model, data_loader)
+    trainer = FlexibleTrainerWithBatch(model, data_loader)
     logger = TrainingLogger("high_granularity_experiment")
     
     # Very granular logging settings
@@ -252,7 +252,7 @@ def run_simple_batch_experiment():
     # Quick setup
     data_loader = MNISTDataLoader(batch_size=64)
     model = model_type
-    trainer = FlexibleTrainer(model, data_loader)
+    trainer = FlexibleTrainerWithBatch(model, data_loader)
     logger = TrainingLogger("simple_batch_experiment")
     
     # Simple configuration
@@ -306,7 +306,7 @@ def run_simple_batch_experiment_with_checkpointer():
     data_loader = MNISTDataLoader(batch_size=64)
     model = model_type
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-    trainer = FlexibleTrainer(model, data_loader)
+    trainer = FlexibleTrainerWithBatch(model, data_loader)
     logger = TrainingLogger(experiment_name)
     # Simple configuration
     training_config = {
@@ -370,6 +370,62 @@ def run_simple_batch_experiment_with_checkpointer():
 
     return history, checkpointer
 
+def run_epoch_based_experiment_with_checkpointer():
+    """
+    Example of epoch-based training with logging and checkpointing (original functionality).
+    """
+    print("EPOCH-BASED TRAINING EXPERIMENT WITH CHECKPOINTING")
+    print("="*60)
+    
+    # Setup
+    data_loader = MNISTDataLoader(batch_size=64, validation_split=0.2)
+    model = model_type
+    trainer = FlexibleTrainerWithBatch(model, data_loader)
+    logger = TrainingLogger("epoch_based_experiment_with_checkpointer")
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    checkpointer = ModelCheckpointer(
+                    model=model,
+                    optimizer=optimizer,
+                    experiment_name="epoch_based_experiment_with_checkpointer",
+                    save_every_n_epochs=1  # Save after every epoch
+    )
+    # Training configuration
+    training_config = {
+        'training_type': 'epoch_based',
+        'training_digits': [0, 1],
+        'monitor_digits': [8, 9],
+        'epochs': 2,
+        'learning_rate': 0.001,
+        'batch_size': 64,
+        'early_stopping_patience': 3
+    }
+    
+    print(f"Training on digits: {training_config['training_digits']}")
+    print(f"Monitoring digits: {training_config['monitor_digits']}")
+    
+    # Train using original epoch-based method
+    history = trainer.train_on_digits(
+        training_digits=training_config['training_digits'],
+        epochs=training_config['epochs'],
+        learning_rate=training_config['learning_rate'],
+        monitor_digits=training_config['monitor_digits'],
+        early_stopping_patience=training_config['early_stopping_patience'],
+        verbose=True,
+        checkpointer=checkpointer,
+        optimizer=optimizer
+    )
+    
+    # Log results
+    logger.log_training_run(
+        training_history=history,
+        model_info=model.get_model_summary(),
+        training_config=training_config,
+        additional_info={'experiment_notes': 'Epoch-based training with checkpointing'}
+    )
+    
+    print(f"✓ Epoch-based experiment logged to: {logger.get_experiment_path()}")
+    print(f"✓ Checkpoints saved to: {checkpointer.get_experiment_path()}")
+    return history, checkpointer
 
 
 if __name__ == "__main__":
@@ -383,9 +439,10 @@ if __name__ == "__main__":
     print("4. High granularity batch-based training")
     print("5. Compare epoch vs batch training")
     print("6. Simple batch-based training with checkpointing")
-    print("7. Run all experiments")
-    
-    choice = input("\nEnter choice (1-7): ").strip()
+    print("7. Run epoch-based experiment with checkpointer")
+    print("8. Run all experiments")
+
+    choice = input("\nEnter choice (1-8): ").strip()
 
     if choice == "1":
         run_epoch_based_experiment()
@@ -404,8 +461,11 @@ if __name__ == "__main__":
 
     elif choice == "6":
         run_simple_batch_experiment_with_checkpointer()
-        
+
     elif choice == "7":
+        run_epoch_based_experiment_with_checkpointer()
+
+    elif choice == "8":
         print("Running all experiments...")
         print("\n" + "="*70)
         
@@ -419,7 +479,8 @@ if __name__ == "__main__":
         run_high_granularity_experiment()
         print("\n" + "-"*50)
         run_comparison_experiment()
-        
+        print("\n" + "-"*50)
+        run_simple_batch_experiment_with_checkpointer()
         print("\n" + "="*70)
         print("ALL EXPERIMENTS COMPLETED!")
         print("Check the 'training_logs' directory for all results.")

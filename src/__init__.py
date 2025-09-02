@@ -1,10 +1,11 @@
 from .models.ff_nn import MNISTModelNN
 from .models.graph_nn import MNISTGraphNN
 from .models.transformer import MNISTTransformer
-from .digit_filter import DigitFilter
-from .trainer import FlexibleTrainer
-from .training_logger import print_performance_summary, calculate_forgetting, TrainingLogger
-from .mnist_data_prep import MNISTDataLoader
+from .utils.digit_filter import DigitFilter
+from .loggings.trainer import FlexibleTrainer
+from .loggings.trainer_with_batch_support import FlexibleTrainerWithBatch
+from .loggings.training_logger import print_performance_summary, calculate_forgetting, TrainingLogger
+from .utils.mnist_data_prep import MNISTDataLoader
 
 # Define what should be available when someone does "from src import *"
 __all__ = [
@@ -16,5 +17,6 @@ __all__ = [
     'TrainingLogger',
     'MNISTDataLoader',
     'MNISTGraphNN',
-    'MNISTTransformer'
+    'MNISTTransformer',
+    'FlexibleTrainerWithBatch'
 ]

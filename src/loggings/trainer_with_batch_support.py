@@ -9,17 +9,17 @@ from tqdm import tqdm
 import copy
 
 from models.ff_nn import MNISTModelNN
-from digit_filter import DigitFilter  
-from trainer import FlexibleTrainer as OriginalFlexibleTrainer
+from src.utils.digit_filter import DigitFilter  
+from loggings.trainer import FlexibleTrainer
 
-class FlexibleTrainer(OriginalFlexibleTrainer):
+class FlexibleTrainerWithBatch(FlexibleTrainer):
     """
     Extended FlexibleTrainer with batch-based training support.
     Inherits all original functionality and adds batch-level training methods.
     """
     
     def __init__(self, model: MNISTModelNN, data_loader, device: str = None):
-        if OriginalFlexibleTrainer != object:
+        if FlexibleTrainer != object:
             super().__init__(model, data_loader, device)
         else:
             # Fallback initialization if parent import failed
@@ -302,7 +302,7 @@ class FlexibleTrainer(OriginalFlexibleTrainer):
         return cleaned
     
     # Include original methods if not inherited
-    if OriginalFlexibleTrainer == object:
+    if FlexibleTrainer == object:
         def create_digit_loaders(self, digits: List[int], batch_size: int = 64) -> Tuple[DataLoader, DataLoader, DataLoader]:
             """Create train, validation, and test loaders for specific digits."""
             # This is a simplified version - use the full implementation from original trainer

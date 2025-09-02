@@ -3,10 +3,10 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from trainer import FlexibleTrainer
-from mnist_data_prep import MNISTDataLoader
+from loggings.trainer import FlexibleTrainer
+from utils.mnist_data_prep import MNISTDataLoader
 from models.ff_nn import MNISTModelNN
-from training_logger import TrainingLogger
+from loggings.training_logger import TrainingLogger
 print('we are here')
 # %%
 # Setup
