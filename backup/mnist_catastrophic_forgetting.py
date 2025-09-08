@@ -32,7 +32,7 @@ from typing import List, Dict, Tuple, Optional
 from tqdm import tqdm
 import copy
 
-class MNISTModel(nn.Module):
+class MNISTModelNN(nn.Module):
     """
     Flexible feedforward neural network for MNIST digit classification.
     Automatically adapts to any architecture you specify.
@@ -46,7 +46,7 @@ class MNISTModel(nn.Module):
             hidden_layers: List of hidden layer sizes (e.g., [2000, 1500, 1000, 500])
             dropout_rate: Dropout probability for regularization
         """
-        super(MNISTModel, self).__init__()
+        super(MNISTModelNN, self).__init__()
         
         # Store architecture info
         self.hidden_layers = hidden_layers
@@ -208,7 +208,7 @@ class FlexibleTrainer:
     performance on multiple digit groups simultaneously.
     """
     
-    def __init__(self, model: MNISTModel, data_loader, device: str = None):
+    def __init__(self, model: MNISTModelNN, data_loader, device: str = None):
         self.model = model
         self.data_loader = data_loader
         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
@@ -529,7 +529,7 @@ def calculate_forgetting(history_before: Dict, history_after: Dict, monitor_key:
 
 # Example usage
 if __name__ == "__main__":
-    model = MNISTModel([1024, 512], dropout_rate=0.5)
+    model = MNISTModelNN([1024, 512], dropout_rate=0.5)
 
 
 """

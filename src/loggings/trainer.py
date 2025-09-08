@@ -8,17 +8,8 @@ from typing import List, Dict, Tuple, Optional
 from tqdm import tqdm
 import copy
 
-try:
-    from mnist_model import MNISTModel
-    print("MNISTModel import successful")
-except Exception as e:
-    print(f"MNISTModel import failed: {e}")
-
-try:
-    from digit_filter import DigitFilter  
-    print("DigitFilter import successful")
-except Exception as e:
-    print(f"DigitFilter import failed: {e}")
+from models.ff_nn import MNISTModelNN
+from utils.digit_filter import DigitFilter  
     
  #%%   
 class FlexibleTrainer:
@@ -27,13 +18,13 @@ class FlexibleTrainer:
     performance on multiple digit groups simultaneously.
     """
     
-    def __init__(self, model: MNISTModel, data_loader, device: str = None):
+    def __init__(self, model: MNISTModelNN, data_loader, device: str = None):
         self.model = model
         self.data_loader = data_loader
         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         self.model.to(self.device)
         
-        print(f"Trainer initialized on device: {self.device}")
+        #print(f"Trainer initialized on device: {self.device}")
     
     def create_digit_loaders(self, digits: List[int], batch_size: int = 64) -> Tuple[DataLoader, DataLoader, DataLoader]:
         """
@@ -58,7 +49,9 @@ class FlexibleTrainer:
         
         return train_loader, val_loader, test_loader
     
-    def evaluate_on_digits(self, digits: List[int], split: str = 'test') -> Dict[str, float]:
+    def evaluate_on_digits(self, digits: List[int], 
+                           split: str = 'test',
+                           criterion: Optional[nn.Module] = None) -> Dict[str, float]:
         """
         Evaluate model performance on specific digits.
         
@@ -87,8 +80,9 @@ class FlexibleTrainer:
         total_loss = 0.0
         correct = 0
         total = 0
-        criterion = nn.CrossEntropyLoss()
-        
+        if criterion is None:
+            criterion = nn.CrossEntropyLoss()
+
         with torch.no_grad():
             for images, labels in loader:
                 images, labels = images.to(self.device), labels.to(self.device)
@@ -140,7 +134,10 @@ class FlexibleTrainer:
         batch_size: int = 64,
         monitor_digits: Optional[List[int]] = None,
         early_stopping_patience: int = 10,
-        verbose: bool = True
+        verbose: bool = True,
+        checkpointer: Optional[object] = None,
+        criterion=None,
+        optimizer=None,
     ) -> Dict:
         """
         Train model on specific digits with optional monitoring of other digits.
@@ -153,6 +150,9 @@ class FlexibleTrainer:
             monitor_digits: Optional list of digits to monitor during training (for forgetting analysis)
             early_stopping_patience: Patience for early stopping
             verbose: Whether to print progress
+            checkpointer: Optional checkpointer object
+            criterion: The loss function. If None, defaults to nn.CrossEntropyLoss().
+            optimizer: The optimizer. If None, defaults to optim.Adam.
             
         Returns:
             Dictionary with complete training history
@@ -169,10 +169,12 @@ class FlexibleTrainer:
             print(f"Training samples: {len(train_loader.dataset):,}")
             print(f"Validation samples: {len(val_loader.dataset):,}")
         
-        # Setup training
-        criterion = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(self.model.parameters(), lr=learning_rate)
+        # Setup training: Use provided criterion/optimizer or create defaults
+        if criterion is None:
+            criterion = nn.CrossEntropyLoss()
         
+        if optimizer is None:
+            optimizer = optim.Adam(self.model.parameters(), lr=learning_rate)        
         # Training history
         history = {
             'training_digits': training_digits,
@@ -200,13 +202,13 @@ class FlexibleTrainer:
         if verbose:
             print(f"\nStarting training for {epochs} epochs...")
             print("-" * 80)
-        
+        # Training loop
         for epoch in range(epochs):
             # Train one epoch
             train_metrics = self.train_epoch(train_loader, criterion, optimizer)
             
             # Evaluate on validation set (same digits as training)
-            val_metrics = self.evaluate_on_digits(training_digits, split='val')
+            val_metrics = self.evaluate_on_digits(training_digits, split='val', criterion=criterion)
             
             # Store training metrics
             history['train_loss'].append(train_metrics['loss'])
@@ -216,10 +218,10 @@ class FlexibleTrainer:
             
             # Monitor other digits if specified
             if monitor_digits:
-                monitor_train = self.evaluate_on_digits(monitor_digits, split='train')
-                monitor_val = self.evaluate_on_digits(monitor_digits, split='val')
-                monitor_test = self.evaluate_on_digits(monitor_digits, split='test')
-                
+                monitor_train = self.evaluate_on_digits(monitor_digits, split='train', criterion=criterion)
+                monitor_val = self.evaluate_on_digits(monitor_digits, split='val', criterion=criterion)
+                monitor_test = self.evaluate_on_digits(monitor_digits, split='test', criterion=criterion)
+
                 history['monitor_train_loss'].append(monitor_train['loss'])
                 history['monitor_train_accuracy'].append(monitor_train['accuracy'])
                 history['monitor_val_loss'].append(monitor_val['loss'])
@@ -240,7 +242,20 @@ class FlexibleTrainer:
                     progress_str += f" | Monitor Acc: {monitor_acc:6.2f}%"
                 
                 print(progress_str)
-            
+            if checkpointer:
+                checkpointer.maybe_save_epoch(
+                    current_epoch=epoch + 1,
+                    training_history=history,
+                    training_config={
+                        'training_digits': training_digits,
+                        'epochs': epochs,
+                        'learning_rate': learning_rate,
+                        'batch_size': batch_size,
+                        'monitor_digits': monitor_digits,
+                        'early_stopping_patience': early_stopping_patience
+                    },
+                    model_info=self.model.get_model_summary() if hasattr(self.model, 'get_model_summary') else None
+                )
             # Early stopping
             if val_metrics['accuracy'] > best_val_acc:
                 best_val_acc = val_metrics['accuracy']
@@ -271,7 +286,9 @@ class FlexibleTrainer:
         
         return history
     
-    def get_performance_summary(self, digits_groups: Dict[str, List[int]]) -> Dict[str, Dict[str, float]]:
+    def get_performance_summary(self, 
+                                digits_groups: Dict[str, List[int]],
+                                criterion: Optional[nn.Module] = None) -> Dict[str, Dict[str, float]]:
         """
         Get performance summary on multiple digit groups.
         
@@ -283,12 +300,13 @@ class FlexibleTrainer:
             Dictionary with performance metrics for each group
         """
         summary = {}
-        
+        if criterion is None:
+            criterion = nn.CrossEntropyLoss()
         for group_name, digits in digits_groups.items():
-            train_perf = self.evaluate_on_digits(digits, split='train')
-            val_perf = self.evaluate_on_digits(digits, split='val')
-            test_perf = self.evaluate_on_digits(digits, split='test')
-            
+            train_perf = self.evaluate_on_digits(digits, split='train', criterion=criterion)
+            val_perf = self.evaluate_on_digits(digits, split='val', criterion=criterion)
+            test_perf = self.evaluate_on_digits(digits, split='test', criterion=criterion)
+
             summary[group_name] = {
                 'train_accuracy': train_perf['accuracy'],
                 'val_accuracy': val_perf['accuracy'],
