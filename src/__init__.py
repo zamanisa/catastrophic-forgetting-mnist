@@ -6,7 +6,7 @@ from .loggings.trainer import FlexibleTrainer
 from .loggings.trainer_with_batch_support import FlexibleTrainerWithBatch
 from .loggings.training_logger import print_performance_summary, calculate_forgetting, TrainingLogger
 from .utils.mnist_data_prep import MNISTDataLoader
-
+from .utils.unified_training_function import run_training_experiment
 # Define what should be available when someone does "from src import *"
 __all__ = [
     'MNISTModelNN',
@@ -19,4 +19,5 @@ __all__ = [
     'MNISTGraphNN',
     'MNISTTransformer',
     'FlexibleTrainerWithBatch'
+    'run_training_experiment'
 ]
