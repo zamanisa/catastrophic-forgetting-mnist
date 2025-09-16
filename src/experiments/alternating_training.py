@@ -20,9 +20,14 @@ Usage:
     
     history, logger = run_alternating_experiment(model, config, "my_alternating_experiment")
 """
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import torch
 from typing import Dict, List, Tuple, Any
+from utils.digit_filter import DigitFilter  
+
 from utils.unified_training_function import run_training_experiment
 from loggings.training_logger import TrainingLogger
 
