@@ -40,7 +40,7 @@ model_transformer = MNISTTransformer(
         dropout_rate=0.2
     )
 
-model_type = model_graphnn
+model_type = model_ff_nn
 
 
 def run_epoch_based_experiment():
@@ -61,7 +61,7 @@ def run_epoch_based_experiment():
         'training_type': 'epoch_based',
         'training_digits': [0, 1],
         'monitor_digits': [8, 9],
-        'epochs': 2,
+        'epochs': 3,
         'learning_rate': 0.001,
         'batch_size': 64,
         'early_stopping_patience': 3
