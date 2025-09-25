@@ -140,6 +140,16 @@ def run_training_experiment(
     if 'monitor_digits' in config:
         print(f"Monitoring digits: {config['monitor_digits']}")
     
+    # Log initial state (time 0) before training starts
+    print("\nEvaluating initial model state...")
+    initial_metrics = _evaluate_initial_state(
+        trainer=trainer,
+        training_digits=config['training_digits'],
+        monitor_digits=config.get('monitor_digits'),
+        criterion=criterion
+    )
+    print("✓ Initial state evaluated")
+    
     # Execute training based on detected mode
     if training_mode == 'epoch_based':
         print(f"Epochs: {config['epochs']}")
@@ -165,6 +175,9 @@ def run_training_experiment(
             
         # Train using epoch-based method
         history = trainer.train_on_digits(**train_args)
+        
+        # Add initial metrics to history (prepend to all lists)
+        history = _prepend_initial_metrics(history, initial_metrics, training_mode)
         
     else:  # batch_based
         print(f"Total batches: {config['total_batches']:,}")
@@ -198,6 +211,9 @@ def run_training_experiment(
             
         # Train using batch-based method
         history = trainer.train_on_digits_batch_based(**train_args)
+        
+        # Add initial metrics to history (prepend to all lists)
+        history = _prepend_initial_metrics(history, initial_metrics, training_mode)
     
     # Log the results
     additional_info = {
@@ -222,6 +238,111 @@ def run_training_experiment(
         print(f"✓ Checkpoints saved to: {checkpointer.get_experiment_path()}")
     
     return history, logger
+
+
+def _evaluate_initial_state(trainer, training_digits, monitor_digits=None, criterion=None):
+    """
+    Evaluate the model's initial performance before training starts.
+    
+    Args:
+        trainer: FlexibleTrainerWithBatch instance
+        training_digits: List of digits to train on
+        monitor_digits: Optional list of digits to monitor
+        criterion: Optional loss criterion
+        
+    Returns:
+        Dict containing initial metrics for all categories
+    """
+    # Temporarily set model to eval mode for evaluation
+    trainer.model.eval()
+    
+    initial_metrics = {}
+    
+    # Evaluate on training digits
+    try:
+        train_metrics = trainer.evaluate_on_digits(training_digits, criterion=criterion)
+        initial_metrics.update({
+            'train_loss': train_metrics.get('loss'),
+            'train_accuracy': train_metrics.get('accuracy'),
+            'val_loss': train_metrics.get('val_loss'),
+            'val_accuracy': train_metrics.get('val_accuracy'),
+            'test_loss': train_metrics.get('test_loss'),
+            'test_accuracy': train_metrics.get('test_accuracy')
+        })
+    except Exception as e:
+        print(f"Warning: Could not evaluate training digits at initial state: {e}")
+        # Set None values for training metrics
+        for key in ['train_loss', 'train_accuracy', 'val_loss', 'val_accuracy', 'test_loss', 'test_accuracy']:
+            initial_metrics[key] = None
+    
+    # Evaluate on monitor digits if provided
+    if monitor_digits:
+        try:
+            monitor_metrics = trainer.evaluate_on_digits(monitor_digits, criterion=criterion)
+            initial_metrics.update({
+                'monitor_train_loss': monitor_metrics.get('loss'),
+                'monitor_train_accuracy': monitor_metrics.get('accuracy'),
+                'monitor_val_loss': monitor_metrics.get('val_loss'),
+                'monitor_val_accuracy': monitor_metrics.get('val_accuracy'),
+                'monitor_test_loss': monitor_metrics.get('test_loss'),
+                'monitor_test_accuracy': monitor_metrics.get('test_accuracy')
+            })
+        except Exception as e:
+            print(f"Warning: Could not evaluate monitor digits at initial state: {e}")
+            # Set None values for monitor metrics
+            for key in ['monitor_train_loss', 'monitor_train_accuracy', 'monitor_val_loss', 
+                       'monitor_val_accuracy', 'monitor_test_loss', 'monitor_test_accuracy']:
+                initial_metrics[key] = None
+    else:
+        # No monitor digits provided - set monitor metrics to None
+        for key in ['monitor_train_loss', 'monitor_train_accuracy', 'monitor_val_loss', 
+                   'monitor_val_accuracy', 'monitor_test_loss', 'monitor_test_accuracy']:
+            initial_metrics[key] = None
+    
+    return initial_metrics
+
+
+def _prepend_initial_metrics(history, initial_metrics, training_mode):
+    """
+    Add initial state metrics to the beginning of training history.
+    
+    Args:
+        history: Training history from trainer
+        initial_metrics: Initial state metrics from _evaluate_initial_state
+        training_mode: 'epoch_based' or 'batch_based'
+        
+    Returns:
+        Modified history with initial metrics prepended
+    """
+    # Define all possible metric keys
+    metric_keys = [
+        'train_loss', 'train_accuracy', 'val_loss', 'val_accuracy',
+        'test_loss', 'test_accuracy', 'monitor_train_loss', 'monitor_train_accuracy',
+        'monitor_val_loss', 'monitor_val_accuracy', 'monitor_test_loss', 'monitor_test_accuracy'
+    ]
+    
+    # Add time identifier for initial state
+    if training_mode == 'epoch_based':
+        # Add epoch 0
+        if 'epochs' not in history:
+            history['epochs'] = []
+        history['epochs'].insert(0, 0)
+    else:  # batch_based
+        # Add batch 0
+        if 'batch_numbers' not in history:
+            history['batch_numbers'] = []
+        history['batch_numbers'].insert(0, 0)
+    
+    # Prepend initial metrics to each metric list
+    for key in metric_keys:
+        if key not in history:
+            history[key] = []
+        
+        # Get initial value for this metric (None if not evaluated)
+        initial_value = initial_metrics.get(key)
+        history[key].insert(0, initial_value)
+    
+    return history
 
 
 # Example usage and test configurations
