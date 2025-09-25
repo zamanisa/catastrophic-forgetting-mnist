@@ -219,16 +219,28 @@ class TrainingLogger:
         
         # Add catastrophic forgetting analysis if monitor data exists
         if history.get('monitor_test_accuracy'):
-            initial_monitor = history['monitor_test_accuracy'][0]
-            final_monitor = history['monitor_test_accuracy'][-1]
-            experiment_data['catastrophic_forgetting_analysis'] = {
-                'initial_monitor_accuracy': initial_monitor,
-                'final_monitor_accuracy': final_monitor,
-                'accuracy_change': final_monitor - initial_monitor,
-                'final_monitor_train_accuracy': history.get('monitor_train_accuracy', [0])[-1] if history.get('monitor_train_accuracy') else 0,
-                'final_monitor_val_accuracy': history.get('monitor_val_accuracy', [0])[-1] if history.get('monitor_val_accuracy') else 0,
-                'final_monitor_test_loss': history.get('monitor_test_loss', [0])[-1] if history.get('monitor_test_loss') else 0
-            }
+            # Filter out None values and get valid monitor accuracies
+            monitor_accuracies = [acc for acc in history['monitor_test_accuracy'] if acc is not None]
+            
+            if len(monitor_accuracies) >= 2:  # Need at least 2 valid data points
+                initial_monitor = monitor_accuracies[0]
+                final_monitor = monitor_accuracies[-1]
+                
+                experiment_data['catastrophic_forgetting_analysis'] = {
+                    'initial_monitor_accuracy': initial_monitor,
+                    'final_monitor_accuracy': final_monitor,
+                    'accuracy_change': final_monitor - initial_monitor,
+                    'final_monitor_train_accuracy': history.get('monitor_train_accuracy', [None])[-1],
+                    'final_monitor_val_accuracy': history.get('monitor_val_accuracy', [None])[-1],
+                    'final_monitor_test_loss': history.get('monitor_test_loss', [None])[-1]
+                }
+            else:
+                # Not enough valid data points for analysis
+                experiment_data['catastrophic_forgetting_analysis'] = {
+                    'error': 'Insufficient valid monitor data for catastrophic forgetting analysis',
+                    'available_data_points': len(monitor_accuracies),
+                    'raw_monitor_data': history.get('monitor_test_accuracy', [])
+                }
         
         with open(json_file, 'w') as f:
             json.dump(experiment_data, f, indent=2)

@@ -178,7 +178,7 @@ class FlexibleTrainerWithBatch(FlexibleTrainer):
                         history['monitor_test_accuracy'].append(None)                
                           
                 # Validation every N batches
-                if (batch_idx + 1) % val_every_n_batches == 0:
+                if (batch_idx + 1) % log_every_n_batches == 0:
                     # Evaluate on training digits
                     val_metrics = self.evaluate_on_digits(training_digits, split='val')
                     test_metrics = self.evaluate_on_digits(training_digits, split='test')

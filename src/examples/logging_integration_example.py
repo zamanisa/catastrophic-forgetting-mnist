@@ -19,8 +19,8 @@ from models.transformer import MNISTTransformer
 from loggings.trainer_with_batch_support import FlexibleTrainerWithBatch  # Updated trainer
 from loggings.training_logger import TrainingLogger
 from loggings.model_checkpointer import ModelCheckpointer
-
-model_ff_nn = MNISTModelNN(hidden_layers=[512, 256], dropout_rate=0.3)
+from utils.unified_training_function import run_training_experiment
+model_ff_nn = MNISTModelNN(hidden_layers=[256, 256], dropout_rate=0.3)
 
 
 model_graphnn = MNISTGraphNN(
@@ -40,7 +40,7 @@ model_transformer = MNISTTransformer(
         dropout_rate=0.2
     )
 
-model_type = model_graphnn
+model_type = model_ff_nn
 
 
 def run_epoch_based_experiment():
@@ -52,7 +52,7 @@ def run_epoch_based_experiment():
     
     # Setup
     data_loader = MNISTDataLoader(batch_size=64, validation_split=0.2)
-    model = model_graphnn
+    model = model_type
     trainer = FlexibleTrainerWithBatch(model, data_loader)
     logger = TrainingLogger("epoch_based_experiment")
     
@@ -94,28 +94,24 @@ def run_epoch_based_experiment():
 
 def run_batch_based_experiment():
     """
-    Example of batch-based training with granular logging.
+    Example of batch-based training with granular logging using unified function.
     """
     print("BATCH-BASED TRAINING EXPERIMENT")
     print("="*60)
     
-    # Setup
-    data_loader = MNISTDataLoader(batch_size=32, validation_split=0.2)
-    model = model_type
-    trainer = FlexibleTrainerWithBatch(model, data_loader)
-    logger = TrainingLogger("batch_based_experiment")
+    # Setup model
+    model = model_type  # Your existing model
     
     # Training configuration
     training_config = {
-        'training_type': 'batch_based',
         'training_digits': [2, 3, 4],
         'monitor_digits': [7, 8, 9],
         'total_batches': 500,
-        'log_every_n_batches': 50,
-        'val_every_n_batches': 100,
+        'log_every_n_batches': 32,
+        'val_every_n_batches': 32,
         'learning_rate': 0.0015,
         'batch_size': 32,
-        'early_stopping': True,
+        'early_stopping': False,
         'early_stopping_patience': 3
     }
     
@@ -125,34 +121,15 @@ def run_batch_based_experiment():
     print(f"Logging every: {training_config['log_every_n_batches']} batches")
     print(f"Validation every: {training_config['val_every_n_batches']} batches")
     
-    # Train using new batch-based method
-    history = trainer.train_on_digits_batch_based(
-        training_digits=training_config['training_digits'],
-        total_batches=training_config['total_batches'],
-        log_every_n_batches=training_config['log_every_n_batches'],
-        val_every_n_batches=training_config['val_every_n_batches'],
-        learning_rate=training_config['learning_rate'],
-        batch_size=training_config['batch_size'],
-        monitor_digits=training_config['monitor_digits'],
-        early_stopping=training_config['early_stopping'],
-        early_stopping_patience=training_config['early_stopping_patience'],
-        verbose=True
-    )
-    
-    # Log results (logger automatically detects batch-based format)
-    logger.log_training_run(
-        training_history=history,
-        model_info=model.get_model_summary(),
+    # Use the unified function (this will include time 0 logging)
+    history, logger = run_training_experiment(
+        model=model,
         training_config=training_config,
-        additional_info={
-            'experiment_notes': 'Batch-based training with granular logging',
-            'granularity_analysis': f'Logged every {training_config["log_every_n_batches"]} batches for detailed training dynamics'
-        }
+        experiment_name="batch_based_experiment"
     )
     
     print(f"✓ Batch-based experiment logged to: {logger.get_experiment_path()}")
     return history
-
 
 def run_comparison_experiment():
     """
@@ -467,12 +444,13 @@ if __name__ == "__main__":
     print("7. Run epoch-based experiment with checkpointer")
     print("8. Run all experiments")
 
-    choice = input("\nEnter choice (1-8): ").strip()
+    choice = '2'
 
     if choice == "1":
         run_epoch_based_experiment()
     
     elif choice == "2":
+        print('choice 2 selected')
         run_batch_based_experiment()
     
     elif choice == "3":
